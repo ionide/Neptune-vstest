@@ -1,0 +1,10 @@
+source https://www.nuget.org/api/v2
+
+nuget FSharp.Core
+nuget Suave
+nuget Newtonsoft.Json
+
+group Build
+source https://www.nuget.org/api/v2
+
+nuget FAKE
