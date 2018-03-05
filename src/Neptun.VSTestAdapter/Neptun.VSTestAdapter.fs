@@ -8,12 +8,20 @@ open Suave.WebPart
 open Suave.Filters
 open Suave.Operators
 open Suave.Http
+open System.Threading
 
 let mutable scmPort = 0
 
 let app (scm: SocketCommunicationManager) =
     choose [
         path "/getPort" >=> OK (string scmPort)
+        path "/handshake" >=>
+            request (fun r ->
+                scm.AcceptClientAsync().Wait()
+                scm.WaitForClientConnection(Timeout.Infinite) |> ignore
+                scm.ReceiveRawMessage() |> ignore
+                OK "connected"
+            )
         path "/request" >=> request (fun r ->
             r.rawForm
             |> System.Text.Encoding.UTF8.GetString
