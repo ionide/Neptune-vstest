@@ -51,7 +51,7 @@ let app (scm: SocketCommunicationManager) =
                                yield msg
                                isFinished <- true
                     |]
-                elif req.Contains "TestSession.CustomTestHostLaunchCallback" then
+                elif req.Contains "TestExecution.CustomTestHostLaunchCallback" then
                     let mutable isFinished = false
                     [|
                         while not isFinished do
