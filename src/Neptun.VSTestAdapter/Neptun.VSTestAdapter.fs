@@ -9,6 +9,7 @@ open Suave.Filters
 open Suave.Operators
 open Suave.Http
 open System.Threading
+open Newtonsoft.Json
 
 let mutable scmPort = 0
 
@@ -16,19 +17,56 @@ let app (scm: SocketCommunicationManager) =
     choose [
         path "/getPort" >=> OK (string scmPort)
         path "/handshake" >=>
-            request (fun r ->
+            request (fun _ ->
                 scm.AcceptClientAsync().Wait()
                 scm.WaitForClientConnection(Timeout.Infinite) |> ignore
                 scm.ReceiveRawMessage() |> ignore
                 OK "connected"
             )
         path "/request" >=> request (fun r ->
-            r.rawForm
-            |> System.Text.Encoding.UTF8.GetString
-            |> scm.WriteAndFlushToChannel
+            let req = r.rawForm |> System.Text.Encoding.UTF8.GetString
 
-            scm.ReceiveRawMessage()
-            |> OK
+            req |> scm.WriteAndFlushToChannel
+
+            let res =
+                if req.Contains "TestDiscovery.Start" then
+                    let mutable isFinished = false
+                    [|
+                        while not isFinished do
+                            let msg = scm.ReceiveRawMessage()
+                            if msg.Contains "TestDiscovery.TestFound" then
+                                yield msg
+                            if msg.Contains "TestDiscovery.Completed" then
+                               yield msg
+                               isFinished <- true
+                    |]
+                elif req.Contains "TestExecution.RunAllWithDefaultHost" then
+                    let mutable isFinished = false
+                    [|
+                        while not isFinished do
+                            let msg = scm.ReceiveRawMessage()
+                            if msg.Contains "TestExecution.StatsChange" then
+                                yield msg
+                            if msg.Contains "TestExecution.Completed" then
+                               yield msg
+                               isFinished <- true
+                    |]
+                elif req.Contains "TestSession.CustomTestHostLaunchCallback" then
+                    let mutable isFinished = false
+                    [|
+                        while not isFinished do
+                            let msg = scm.ReceiveRawMessage()
+                            if msg.Contains "TestExecution.StatsChange" then
+                                yield msg
+                            if msg.Contains "TestExecution.Completed" then
+                               yield msg
+                               isFinished <- true
+                    |]
+                elif req.Contains "Extensions.Initialize" then [||]
+                else
+                    [| scm.ReceiveRawMessage() |]
+
+            OK (JsonConvert.SerializeObject res)
 
         )
     ]
