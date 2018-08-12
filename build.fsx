@@ -13,7 +13,7 @@ open System
 
 let buildDir  = "./build/"
 let appReferences = !! "/**/*.fsproj"
-let dotnetcliVersion = "2.1.300"
+let dotnetcliVersion = "2.1.302"
 let mutable dotnetExePath = "dotnet"
 
 // --------------------------------------------------------------------------------------
